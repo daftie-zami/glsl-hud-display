@@ -18,8 +18,7 @@ qt_add_qml_module(apposd
         ui/Main.qml
         ui/overlays/OSDOverlay.qml
     RESOURCES
-        shaders/audiowide.png
-        shaders/audiowide.json
+        shaders/font.png
 )
 
 qt_add_shaders(apposd "hud_shaders"
