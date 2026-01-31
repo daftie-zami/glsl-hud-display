@@ -9,10 +9,10 @@ Item {
     property real hudOpacity: 1.0              // Overall HUD opacity
     
     // Telemetry data inputs
-    property real yaw: 0                       // Aircraft yaw (0-360)
-    property real pitch: 0                     // Aircraft pitch (-90 to 90)
-    property real roll: 0                      // Aircraft roll (-180 to 180)
-    property real altitude: 0                  // Altitude in meters
+    property real yaw: 0                       // yaw (0-360)
+    property real pitch: 0                     // pitch (-90 to 90)
+    property real roll: 0                      // roll (-180 to 180)
+    property real altitude: 0                  // altitude in meters
     property real speed: 0                     // speed in km/h
     
     // Target tracking
@@ -22,14 +22,7 @@ Item {
     
     // Internal timer for shader animation
     property real elapsedTime: 0
-    
-    Timer {
-        interval: 16  // ~60 FPS
-        running: root.animated && root.visible
-        repeat: true
-        onTriggered: root.elapsedTime += 0.016
-    }
-    
+
     // Smooth transitions for telemetry values
     Behavior on yaw { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
     Behavior on pitch { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
@@ -37,10 +30,10 @@ Item {
     Behavior on altitude { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
     Behavior on speed { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
     
-    // MSDF Font Atlas Texture
+    // Font image
     Image {
-        id: fontAtlasImage
-        source: "qrc:/qt/qml/hud/shaders/audiowide.png"
+        id: fontText
+        source: "qrc:/qt/qml/osd/shaders/font.png"
         visible: false
         smooth: true
         mipmap: false
@@ -52,8 +45,8 @@ Item {
         anchors.fill: parent
         opacity: root.hudOpacity
         
-        // Font atlas texture
-        property variant fontAtlas: fontAtlasImage
+        // Font texture
+        property variant fontTex: fontText
         
         // Shader uniforms
         property real iTime: root.elapsedTime

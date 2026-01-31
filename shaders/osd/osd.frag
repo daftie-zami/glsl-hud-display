@@ -17,43 +17,10 @@ layout(std140, binding = 0) uniform buf {
     vec4 hudColor;
 };
 
-layout(binding = 1) uniform sampler2D fontAtlas;
+// Font texture for text rendering
+layout(binding = 1) uniform sampler2D fontTex;
 
 #define PI 3.1415926535897932384626433832795
-
-// ============================================
-// MSDF RENDERING
-// ============================================
-
-// Median function for MSDF sampling
-float median(float r, float g, float b) {
-    return max(min(r, g), min(max(r, g), b));
-}
-
-// Draw a single MSDF character at given UV
-float drawMSDF(vec2 uv, float pxRange)
-{
-    vec3 msd = texture(fontAtlas, uv).rgb;
-    float sd = median(msd.r, msd.g, msd.b) - 0.5;
-    float screenPxDist = sd * pxRange;
-    return clamp(screenPxDist + 0.5, 0.0, 1.0);
-}
-
-// MSDF with glow effect for HUD aesthetic
-vec3 drawMSDFGlow(vec2 uv, float pxRange, vec3 textColor, vec3 glowColor)
-{
-    vec3 msd = texture(fontAtlas, uv).rgb;
-    float sd = median(msd.r, msd.g, msd.b) - 0.5;
-    float screenPxDist = sd * pxRange;
-    
-    float alpha = clamp(screenPxDist + 0.5, 0.0, 1.0);
-    float glow = smoothstep(0.2, 0.0, abs(sd)) * 0.6;
-    
-    vec3 color = textColor * alpha;
-    color += glowColor * glow;
-    
-    return color;
-}
 
 // ============================================
 // DISTANCE & DRAWING FUNCTIONS
@@ -128,6 +95,188 @@ vec2 rotate2D(vec2 p, float a)
 }
 
 // ============================================
+// TEXT DRAWING FUNCTIONS
+// ============================================
+
+// Set to the sampler containing the alphabet texture
+#define FONT_TEXTURE fontTex
+
+// Horizontal character spacing (default: 0.5)
+#define CHAR_SPACING 0.44
+
+// Create a basic string
+#define makeStr(func_name) float func_name(vec2 u) { _print 
+
+// Create a string with an int parameter
+#define makeStr1i(func_name) float func_name(vec2 u, int i) { _print
+
+// Create a string with a float parameter
+#define makeStr1f(func_name) float func_name(vec2 u, float i) { _print
+
+// Create a string with two floats parameter
+#define makeStr2f(func_name) float func_name(vec2 u, float i, float j) { _print
+
+// ... Or create your own strings with any parameters
+#define makeStrXX(func_name) float func_name(vec2 u, ...) { _print
+
+// Terminate a string
+#define _end    ); return d; }
+
+// Dynamic uppercase character
+// i: [0-25]
+#define _ch(i)  _ 65+int(i)
+
+// Dynamic digit
+// i: [0-9]
+#define _dig(i) _ 48+int(i)
+
+// Floating point debug
+// x:   value to print
+// dec: number of decimal places to print
+#define _dec(x, dec) ); d += _decimal(FONT_TEXTURE, u, x, dec); (0
+
+// Uppercase letters (65-90)
+#define _A _ 65
+#define _B _ 66
+#define _C _ 67
+#define _D _ 68
+#define _E _ 69
+#define _F _ 70
+#define _G _ 71
+#define _H _ 72
+#define _I _ 73
+#define _J _ 74
+#define _K _ 75
+#define _L _ 76
+#define _M _ 77
+#define _N _ 78
+#define _O _ 79
+#define _P _ 80
+#define _Q _ 81
+#define _R _ 82
+#define _S _ 83
+#define _T _ 84
+#define _U _ 85
+#define _V _ 86
+#define _W _ 87
+#define _X _ 88
+#define _Y _ 89
+#define _Z _ 90
+
+// Lowercase letters (97-122)
+#define _a _ 97
+#define _b _ 98
+#define _c _ 99
+#define _d _ 100
+#define _e _ 101
+#define _f _ 102
+#define _g _ 103
+#define _h _ 104
+#define _i _ 105
+#define _j _ 106
+#define _k _ 107
+#define _l _ 108
+#define _m _ 109
+#define _n _ 110
+#define _o _ 111
+#define _p _ 112
+#define _q _ 113
+#define _r _ 114
+#define _s _ 115
+#define _t _ 116
+#define _u _ 117
+#define _v _ 118
+#define _w _ 119
+#define _x _ 120
+#define _y _ 121
+#define _z _ 122
+
+// Digits (48-57)
+#define _0 _ 48
+#define _1 _ 49
+#define _2 _ 50
+#define _3 _ 51
+#define _4 _ 52
+#define _5 _ 53
+#define _6 _ 54
+#define _7 _ 55
+#define _8 _ 56
+#define _9 _ 57
+
+// Special characters
+#define __ _ 32      // Space (double underscore for easy typing)
+#define _SPC _ 32    // Space
+#define _SUB _ 45    // Minus/Subtraction sign -
+#define _DOT _ 46    // Period/Dot .
+#define _COM _ 44    // Comma ,
+#define _COL _ 58    // Colon :
+#define _EXC _ 33    // Exclamation mark !
+#define _QUE _ 63    // Question mark ?
+#define _NUM _ 35    // Number sign #
+#define _MUL _ 42    // Multiply *
+#define _DIV _ 47    // Divide /
+#define _ADD _ 43    // Plus +
+#define _AT _ 64     // At sign @
+#define _UND _ 95    // Underscore _
+#define _EQU _ 61    // Equals =
+#define _LT _ 60     // Less than <
+#define _GT _ 62     // Greater than >
+#define _LPA _ 40    // Left parenthesis (
+#define _RPA _ 41    // Right parenthesis )
+#define _LBR _ 91    // Left bracket [
+#define _RBR _ 93    // Right bracket ]
+#define _PER _ 37    // Percent %
+#define _AMP _ 38    // Ampersand &
+#define _SQT _ 39    // Single quote '
+#define _DQT _ 34    // Double quote "
+
+#define _print  float d = 0.; (u.x += CHAR_SPACING
+#define _       ); u.x -= CHAR_SPACING; d += _char(FONT_TEXTURE, u,
+
+// Print character
+float _char(sampler2D s, vec2 u, int id) {
+    vec2 p = vec2(id%16, floor(float(id)/16.)); // Column and row from top
+         p = (u + p) / 16.;
+         // No Y flip - texture starts from top
+         u = step(abs(u-.5), vec2(.5));
+    return texture(s, p).r * u.x * u.y;
+}
+
+// Floating point debug
+float _decimal(sampler2D FONT_TEXTURE, inout vec2 u, float n, int decimals) {
+    float d = 0., N = 1.; // d is the final color, N the number of digits before the decimal
+
+    if (n < 0.) {  // If the number is negative
+        n *= -1.;  // Make it positive
+        (0 _SUB ); // Print a minus sign
+    }
+    
+    // Calculate the number of digits before the decimal point
+    for (float x = n; x >= 10.; x /= 10.) N++;
+
+    // Print the digits before the decimal point
+    for (float i = 0.; i < N; i++) {        
+        float magnitude = pow(10., N-i-1.);
+        float leftDigit = floor(n / magnitude);
+        n -= leftDigit * magnitude;
+        
+        (0 _dig(leftDigit) );
+    }
+
+    (0 _DOT ); // Print a dot
+    
+    // Print the digits after the decimal point
+    for (int i = 0; i < decimals; i++) {
+        float firstDecimal = floor((n - floor(n)) * 10.);
+        n *= 10.;
+        
+        (0 _dig(firstDecimal) );
+    }
+    
+    return d;
+}
+
+// ============================================
 // YAW BRACKET
 // ============================================
 
@@ -137,33 +286,33 @@ float yawBracket(vec2 st)
     float line = 0.0;
 
     float bx = 0.310;
-    float by = 0.43;
+    float by = -0.43;
 
     line = max(line, roundedLine(
         st,
         vec2(bx, by),
-        vec2(bx, by + 0.02),
+        vec2(bx, by - 0.02),
         r
     ));
 
     line = max(line, roundedLine(
         st,
         vec2(bx, by),
-        vec2(bx + 0.05, by - 0.05),
+        vec2(bx + 0.05, by + 0.05),
         r
     ));
     
     line = max(line, roundedLine(
         st,
         vec2(-bx, by),
-        vec2(-bx, by + 0.02),
+        vec2(-bx, by - 0.02),
         r
     ));
 
     line = max(line, roundedLine(
         st,
         vec2(-bx, by),
-        vec2(-bx - 0.05, by - 0.05),
+        vec2(-bx - 0.05, by + 0.05),
         r
     ));
 
@@ -179,10 +328,10 @@ float compassTape(vec2 st, float yawDegrees)
     float r = 0.002;
     float line = 0.0;
 
-    float baseY = 0.43;
+    float baseY = -0.43;
 
     line = max(line, hLineR(st, baseY, -0.3, 0.3, r));
-    line = max(line, vLineR(st, 0.0, baseY  + 0.025, baseY + 0.05, r));
+    line = max(line, vLineR(st, 0.0, baseY - 0.025, baseY - 0.05, r));
 
     const int TICKS = 30;
     float spacing = 0.05;
@@ -205,8 +354,8 @@ float compassTape(vec2 st, float yawDegrees)
             vLineR(
                 st,
                 x,
-                baseY - h,
-                baseY - 0.005,
+                baseY + h,
+                baseY + 0.005,
                 r
             ) * alpha;
 
@@ -278,33 +427,19 @@ float as_altBracket(vec2 st)
     float line = 0.0;
 
     float bx = 0.8;
-    float by = -0.37;
+    float by = 0.37;
 
     line = max(line, roundedLine(
         st,
-        vec2(bx, by),
-        vec2(bx, by + 0.04),
-        r
-    ));
-
-    line = max(line, roundedLine(
-        st,
-        vec2(bx, by),
-        vec2(bx - 0.04, by - 0.02),
+        vec2(-bx, -by),
+        vec2(-bx, -by + 0.04),
         r
     ));
     
     line = max(line, roundedLine(
         st,
         vec2(-bx, -by),
-        vec2(-bx, -by - 0.04),
-        r
-    ));
-    
-    line = max(line, roundedLine(
-        st,
-        vec2(-bx, -by),
-        vec2(-bx + 0.04, -by + 0.02),
+        vec2(-bx + 0.04, -by - 0.02),
         r
     ));
 
@@ -320,7 +455,7 @@ float crossHair(vec2 st, float roll)
     float r = 0.002;
     float shape = 0.0;
 
-    vec2 p = rotate2D(st, roll);
+    vec2 p = rotate2D(st, -roll);
 
     shape = max(shape, arc(
         p,
@@ -331,11 +466,11 @@ float crossHair(vec2 st, float roll)
         PI * 1.8
     ));
     
-    shape = max(shape, vLineR(p, 0.0,  0.015,   0.03 , r));
+    shape = max(shape, vLineR(p, 0.0, -0.015,  -0.03 , r));
     shape = max(shape, hLineR(p, 0.0, -0.015,  -0.030, r));
     shape = max(shape, hLineR(p, 0.0,  0.015,   0.030, r));
-    shape = max(shape, vLineR(p, 0.0,  0.000,  -0.015, r));
-    shape = max(shape, vLineR(p, 0.0, -0.0225, -0.03 , r));
+    shape = max(shape, vLineR(p, 0.0,  0.000,   0.015, r));
+    shape = max(shape, vLineR(p, 0.0,  0.0225,  0.03 , r));
     
     return shape;
 }
@@ -349,7 +484,7 @@ float as_altLadder(vec2 st, float value)
     float r = 0.002;
     float line = 0.0;
 
-    float baseY = 0.795;
+    float baseY = -0.795;
 
     const int TICKS = 30;
     float spacing = 0.05;
@@ -373,8 +508,8 @@ float as_altLadder(vec2 st, float value)
             hLineR(
                 st,
                 x,
-                baseY - h,
-                baseY - 0.005,
+                baseY + h,
+                baseY + 0.005,
                 r
             ) * alpha;
 
@@ -383,7 +518,7 @@ float as_altLadder(vec2 st, float value)
 
     // Mask box area
     float boxMask = roundBoxMask(
-        vec2(st.x - 0.75, st.y),
+        vec2(st.x + 0.75, st.y),
         vec2(0.1, 0.05),
         0.01
     );
@@ -394,7 +529,7 @@ float as_altLadder(vec2 st, float value)
     // Draw box and bracket on top
     line = max(line,
         roundBoxStroke(
-            vec2(st.x - 0.75, st.y),
+            vec2(st.x + 0.75, st.y),
             vec2(0.1, 0.05),
             0.01,
             0.002
@@ -402,48 +537,13 @@ float as_altLadder(vec2 st, float value)
     );
 
     line = max(line, as_altBracket(st));
-    line = max(line, as_altBracket(vec2(-st.x, st.y)));
+    line = max(line, as_altBracket(vec2(st.x, -st.y)));
+
+    float textScale = 0.03;
+    vec2 uv = (st - vec2(-0.72, 0.36)) / textScale;
+    line = max(line, _decimal(fontTex, uv, value, 1));
 
     return line;
-}
-
-// ============================================
-// PITCH LADDER
-// ============================================
-
-float pitchLadder(vec2 st, float pitch, float roll)
-{
-    float r = 0.002;
-    float shape = 0.0;
-
-    const int STEPS = 4;
-    float spacing = 0.2;
-
-    float stepAngle = radians(10.0);
-    float pitchOffset = pitch / stepAngle;
-
-    vec2 p = rotate2D(st, roll);
-
-    for (int i = -STEPS/2; i <= STEPS/2; i++)
-    {
-        float y = (float(i) - pitchOffset) * spacing;
-
-        shape = max(shape,
-            hLineR(p, y, -0.40, -0.1, r)
-        );
-
-        shape = max(shape,
-            hLineR(p, y,  0.1,  0.40, r)
-        );
-    }
-
-    float mask = rectMask(
-        st,
-        vec2(0.5, 0.3),
-        0.00
-    );
-
-    return shape * mask;
 }
 
 // ============================================
@@ -456,12 +556,12 @@ float telemetryOverlay(vec2 st)
     float shape = 0.0;
     
     float bx = 0.6;
-    float by = -0.42;
+    float by = 0.42;
 
     shape = max(shape, roundedLine(
         st,
         vec2(bx, by),
-        vec2(bx + 0.1, by - 0.08),
+        vec2(bx + 0.1, by + 0.08),
         r
     ));
 
@@ -475,138 +575,11 @@ float telemetryOverlay(vec2 st)
     shape = max(shape, roundedLine(
         st,
         vec2(-bx, by),
-        vec2(-bx - 0.1, by - 0.08),
+        vec2(-bx - 0.1, by + 0.08),
         r
     ));
     
     return shape;
-}
-
-// ============================================
-// MSDF TEXT RENDERING
-// ============================================
-
-// Render digit (0-9) using MSDF atlas
-vec3 renderDigit(vec2 st, vec2 pos, float digit, float scale, vec3 textColor, vec3 glowColor)
-{
-    int d = int(mod(digit, 10.0));
-    
-    // Atlas coords from audiowide.json (bottom-left origin, pixels)
-    vec4 atlasCoords[10];
-    atlasCoords[0] = vec4(193.5, 302.5, 254.5, 356.5); // 0
-    atlasCoords[1] = vec4(255.5, 302.5, 279.5, 356.5); // 1
-    atlasCoords[2] = vec4(280.5, 302.5, 330.5, 356.5); // 2
-    atlasCoords[3] = vec4(331.5, 302.5, 377.5, 356.5); // 3
-    atlasCoords[4] = vec4(378.5, 302.5, 428.5, 356.5); // 4
-    atlasCoords[5] = vec4(0.5, 247.5, 50.5, 301.5);    // 5
-    atlasCoords[6] = vec4(97.5, 247.5, 147.5, 301.5);  // 6
-    atlasCoords[7] = vec4(253.5, 247.5, 299.5, 301.5); // 7
-    atlasCoords[8] = vec4(347.5, 247.5, 397.5, 301.5); // 8
-    atlasCoords[9] = vec4(217.5, 192.5, 267.5, 246.5); // 9
-    
-    // Advance values (normalized units)
-    float advances[10];
-    advances[0] = 0.92529296875;  // 0
-    advances[1] = 0.3544921875;   // 1
-    advances[2] = 0.75244140625;  // 2
-    advances[3] = 0.71923828125;  // 3
-    advances[4] = 0.7734375;      // 4
-    advances[5] = 0.75048828125;  // 5
-    advances[6] = 0.744140625;    // 6
-    advances[7] = 0.64111328125;  // 7
-    advances[8] = 0.74609375;     // 8
-    advances[9] = 0.744140625;    // 9
-    
-    vec4 coords = atlasCoords[d];
-    
-    vec2 charSize = vec2(coords.z - coords.x, coords.w - coords.y);
-    vec2 screenSize = charSize * scale;
-    vec2 localPos = st - pos;
-    
-    // Check bounds
-    if (localPos.x < 0.0 || localPos.x > screenSize.x || 
-        abs(localPos.y) > screenSize.y * 0.5) {
-        return vec3(0.0);
-    }
-    
-    // Map to character space (0-1)
-    vec2 t = vec2(localPos.x / screenSize.x, (localPos.y / screenSize.y) + 0.5);
-    t.y = 1.0 - t.y; // Flip Y for atlas coords
-    
-    // Calculate atlas UV
-    vec2 uv = vec2(
-        mix(coords.x, coords.z, t.x) / 488.0,
-        mix(coords.y, coords.w, t.y) / 488.0
-    );
-    
-    return drawMSDFGlow(uv, 8.0, textColor, glowColor);
-}
-
-// Get digit advance width
-float getDigitAdvance(float digit, float scale)
-{
-    int d = int(mod(digit, 10.0));
-    
-    float advances[10];
-    advances[0] = 0.92529296875;  // 0
-    advances[1] = 0.3544921875;   // 1
-    advances[2] = 0.75244140625;  // 2
-    advances[3] = 0.71923828125;  // 3
-    advances[4] = 0.7734375;      // 4
-    advances[5] = 0.75048828125;  // 5
-    advances[6] = 0.744140625;    // 6
-    advances[7] = 0.64111328125;  // 7
-    advances[8] = 0.74609375;     // 8
-    advances[9] = 0.744140625;    // 9
-    
-    return advances[d] * 64.0 * scale; // Scale by emSize (64px)
-}
-
-// Render integer number at position
-vec3 renderNumber(vec2 st, vec2 pos, float value, float scale, vec3 textColor, vec3 glowColor)
-{
-    vec3 color = vec3(0.0);
-    
-    int num = int(abs(value));
-    int digits = 1;
-    
-    // Count digits
-    if (num >= 10) digits = 2;
-    if (num >= 100) digits = 3;
-    if (num >= 1000) digits = 4;
-    if (num >= 10000) digits = 5;
-    
-    // Calculate width for right-alignment
-    float totalWidth = 0.0;
-    int tempNum = num;
-    for (int i = 0; i < 5; i++) {
-        if (i >= digits) break;
-        float digit = mod(float(tempNum), 10.0);
-        totalWidth += getDigitAdvance(digit, scale);
-        tempNum /= 10;
-    }
-    
-    vec2 currentPos = pos - vec2(totalWidth, 0.0); // Right-align
-    
-    // Draw digits left to right
-    tempNum = num;
-    int divisor = 1;
-    for (int i = 1; i < digits; i++) {
-        divisor *= 10;
-    }
-    
-    for (int i = 0; i < 5; i++) {
-        if (i >= digits) break;
-        
-        float digit = mod(float(tempNum / divisor), 10.0);
-        
-        color += renderDigit(st, currentPos, digit, scale, textColor, glowColor);
-        
-        currentPos.x += getDigitAdvance(digit, scale);
-        divisor /= 10;
-    }
-    
-    return color;
 }
 
 // ============================================
@@ -617,20 +590,24 @@ void main()
 {
     vec2 st = qt_TexCoord0;
     st -= 0.5;
-    st.y = -st.y;
     st.x *= iResolution.x / iResolution.y;
 
     vec3 color = vec3(0.0);
     
     // HUD colors
     vec3 hudTint = hudColor.rgb;
-    vec3 glowColor = hudTint * 0.5;
+
+    vec2 fontUV = st * 2.0 + 0.5; // Scale and center the texture
+    if (fontUV.x >= 0.0 && fontUV.x <= 1.0 && fontUV.y >= 0.0 && fontUV.y <= 1.0) {
+        float fontSample = texture(fontTex, fontUV).r;
+        color += hudTint * fontSample;
+    }
 
     float hud = 0.0;
 
     hud = max(hud, as_altLadder(st, speed));
     hud = max(hud, as_altLadder(vec2(-st.x, st.y), altitude));
-    hud = max(hud, compassTape(st, yaw));
+    hud = max(hud, compassTape(st, yaw)); 
     hud = max(hud, crossHair(st, radians(roll)));
     hud = max(hud, telemetryOverlay(st));
 
@@ -638,39 +615,6 @@ void main()
     hud = max(hud, dottedCircle(st, 0.125, phase));
 
     color += hudTint * hud;
-    
-    // Text scale for consistent sizing
-    float textScale = 0.0008;
-    
-    // Speed display (right side, middle)
-    color += renderNumber(
-        st, 
-        vec2(0.82, 0.0), 
-        speed, 
-        textScale, 
-        hudTint * 2.0,
-        glowColor
-    );
-    
-    // Altitude display (left side, middle)
-    color += renderNumber(
-        st, 
-        vec2(-0.72, 0.0), 
-        altitude, 
-        textScale, 
-        hudTint * 2.0,
-        glowColor
-    );
-    
-    // Yaw display (top center)
-    color += renderNumber(
-        st, 
-        vec2(0.05, 0.38), 
-        yaw, 
-        textScale * 0.75,
-        hudTint * 2.0,
-        glowColor
-    );
 
     float alpha = max(max(color.r, color.g), color.b);
     fragColor = vec4(color, alpha * qt_Opacity);
