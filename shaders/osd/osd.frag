@@ -476,10 +476,10 @@ float crossHair(vec2 st, float roll)
 }
 
 // ============================================
-// AIRSPEED/ALTITUDE LADDER
+// AIRSPEED LADDER
 // ============================================
 
-float as_altLadder(vec2 st, float value)
+float airSpeedLadder(vec2 st, float value)
 {
     float r = 0.002;
     float line = 0.0;
@@ -490,8 +490,7 @@ float as_altLadder(vec2 st, float value)
     float spacing = 0.05;
     
     // Normalize value to create smooth scrolling effect
-    // Use modulo to wrap around and create infinite scroll illusion
-    float normalizedValue = value / 100.0; // Scale down for smoother motion
+    float normalizedValue = value / 100.0;
     float offset = mod(normalizedValue * spacing, spacing * 2.0);
 
     for (int i = -TICKS/2; i <= TICKS/2; i++)
@@ -541,6 +540,76 @@ float as_altLadder(vec2 st, float value)
 
     float textScale = 0.03;
     vec2 uv = (st - vec2(-0.72, 0.36)) / textScale;
+    line = max(line, _decimal(fontTex, uv, value, 1));
+
+    return line;
+}
+
+// ============================================
+// ALTITUDE LADDER
+// ============================================
+
+float altLadder(vec2 st, float value)
+{
+    float r = 0.002;
+    float line = 0.0;
+
+    float baseY = 0.795;
+
+    const int TICKS = 30;
+    float spacing = 0.05;
+    
+    // Normalize value to create smooth scrolling effect
+    float normalizedValue = value / 100.0;
+    float offset = mod(normalizedValue * spacing, spacing * 2.0);
+
+    for (int i = -TICKS/2; i <= TICKS/2; i++)
+    {
+        float x = float(i) * spacing - offset;
+        if (abs(x) > 0.3501) continue;
+
+        bool minor = (abs(i) % 2 == 1);
+
+        float h = minor ? -0.015 : -0.02;
+        float alpha = minor ? 0.45 : 1.0;
+
+        float tick =
+            hLineR(
+                st,
+                x,
+                baseY + h,
+                baseY + 0.005,
+                r
+            ) * alpha;
+
+        line = max(line, tick);
+    }
+
+    // Mask box area
+    float boxMask = roundBoxMask(
+        vec2(st.x - 0.75, st.y),
+        vec2(0.1, 0.05),
+        0.01
+    );
+
+    // Clear lines inside box
+    line *= (1.0 - boxMask);
+
+    // Draw box and bracket on top
+    line = max(line,
+        roundBoxStroke(
+            vec2(st.x - 0.75, st.y),
+            vec2(0.1, 0.05),
+            0.01,
+            0.002
+        )
+    );
+
+    line = max(line, as_altBracket(vec2(-st.x, st.y)));
+    line = max(line, as_altBracket(vec2(-st.x, -st.y)));
+
+    float textScale = 0.03;
+    vec2 uv = (st - vec2(0.72, 0.36)) / textScale;
     line = max(line, _decimal(fontTex, uv, value, 1));
 
     return line;
@@ -605,8 +674,8 @@ void main()
 
     float hud = 0.0;
 
-    hud = max(hud, as_altLadder(st, speed));
-    hud = max(hud, as_altLadder(vec2(-st.x, st.y), altitude));
+    hud = max(hud, airSpeedLadder(st, speed));
+    hud = max(hud, altLadder(st, altitude));
     hud = max(hud, compassTape(st, yaw)); 
     hud = max(hud, crossHair(st, radians(roll)));
     hud = max(hud, telemetryOverlay(st));
