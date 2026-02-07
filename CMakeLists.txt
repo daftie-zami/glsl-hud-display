@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(OSD VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_PREFIX_PATH "$ENV{HOME}/Qt/6.10.2/macos")
 
 find_package(Qt6 REQUIRED COMPONENTS Quick Multimedia ShaderTools)
 

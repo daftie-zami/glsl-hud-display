@@ -12,6 +12,9 @@ layout(std140, binding = 0) uniform buf {
     float roll;
     float speed;
     float altitude;
+    float targetLocked;
+    float targetX;
+    float targetY;
     vec2 iResolution;
     vec2 padding;
     vec4 hudColor;
@@ -20,7 +23,7 @@ layout(std140, binding = 0) uniform buf {
 // Font texture for text rendering
 layout(binding = 1) uniform sampler2D fontTex;
 
-#define PI 3.1415926535897932384626433832795
+#define PI 3.14159265359
 
 // ============================================
 // DISTANCE & DRAWING FUNCTIONS
@@ -32,22 +35,6 @@ float sdSegment(vec2 p, vec2 a, vec2 b)
     vec2 ba = b - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * h);
-}
-
-float circleMask(vec2 p, float radius, float feather)
-{
-    float d = length(p);
-    return 1.0 - smoothstep(radius - feather, radius + feather, d);
-}
-
-float rectMask(vec2 p, vec2 halfSize, float feather)
-{
-    vec2 d = abs(p) - halfSize;
-    float outside = length(max(d, 0.0));
-    float inside  = min(max(d.x, d.y), 0.0);
-
-    float dist = outside + inside;
-    return 1.0 - smoothstep(0.0, feather, dist);
 }
 
 float roundedLine(vec2 st, vec2 a, vec2 b, float r)
@@ -235,10 +222,9 @@ vec2 rotate2D(vec2 p, float a)
 
 // Print character
 float _char(sampler2D s, vec2 u, int id) {
-    vec2 p = vec2(id%16, floor(float(id)/16.)); // Column and row from top
-         p = (u + p) / 16.;
-         // No Y flip - texture starts from top
-         u = step(abs(u-.5), vec2(.5));
+    vec2 p = vec2(id & 15, id >> 4);   // bitwise: faster than mod/div
+         p = (u + p) * 0.0625;         // reciprocal multiply vs divide
+         u = step(abs(u - 0.5), vec2(0.5));
     return texture(s, p).r * u.x * u.y;
 }
 
@@ -254,12 +240,16 @@ float _decimal(sampler2D FONT_TEXTURE, inout vec2 u, float n, int decimals) {
     // Calculate the number of digits before the decimal point
     for (float x = n; x >= 10.; x /= 10.) N++;
 
+    // Build magnitude iteratively (avoids pow() per iteration)
+    float magnitude = 1.0;
+    for (float j = 1.0; j < N; j++) magnitude *= 10.0;
+
     // Print the digits before the decimal point
-    for (float i = 0.; i < N; i++) {        
-        float magnitude = pow(10., N-i-1.);
+    for (float i = 0.; i < N; i++) {
         float leftDigit = floor(n / magnitude);
         n -= leftDigit * magnitude;
-        
+        magnitude *= 0.1;
+
         (0 _dig(leftDigit) );
     }
 
@@ -333,17 +323,19 @@ float compassTape(vec2 st, float yawDegrees)
     line = max(line, hLineR(st, baseY, -0.3, 0.3, r));
     line = max(line, vLineR(st, 0.0, baseY - 0.025, baseY - 0.05, r));
 
-    const int TICKS = 30;
     float spacing = 0.05;
     
     // Normalize yaw for scrolling effect
     float normalizedYaw = mod(yawDegrees, 360.0) / 360.0;
     float offset = mod(normalizedYaw * spacing * 72.0, spacing * 2.0);
 
-    for (int i = -TICKS/2; i <= TICKS/2; i++)
+    // Tight loop bounds: only iterate over visible ticks
+    int iMin = max(-15, int(ceil((offset - 0.3001) / spacing)));
+    int iMax = min( 15, int(floor((offset + 0.3001) / spacing)));
+
+    for (int i = iMin; i <= iMax; i++)
     {
         float x = float(i) * spacing - offset;
-        if (abs(x) > 0.3001) continue;
 
         bool minor = (abs(i) % 2 == 1);
 
@@ -387,37 +379,6 @@ float arc(vec2 st, vec2 center, float radius, float thickness, float a0, float a
 }
 
 // ============================================
-// ROTATING DOTTED CIRCLE
-// ============================================
-
-float dottedCircle(
-    vec2 st,
-    float radius,
-    float phase
-){
-    float r  = 0.002;
-    float aa = 0.001;
-
-    float dots = 36.0;
-    float dotSize = 0.6;
-
-    float d = length(st);
-
-    float ring =
-        smoothstep(radius - r - aa, radius - r + aa, d) *
-        (1.0 - smoothstep(radius + r - aa, radius + r + aa, d));
-
-    float ang = atan(st.y, st.x);
-    float a = (ang + PI) / (2.0 * PI);
-
-    float seg = fract((a + phase) * dots);
-
-    float dotMask = smoothstep(dotSize, dotSize - 0.25, seg);
-
-    return ring * dotMask;
-}
-
-// ============================================
 // ALT BRACKET
 // ============================================
 
@@ -455,7 +416,7 @@ float crossHair(vec2 st, float roll)
     float r = 0.002;
     float shape = 0.0;
 
-    vec2 p = rotate2D(st, -roll);
+    vec2 p = rotate2D(vec2(st.x, -st.y), -roll);
 
     shape = max(shape, arc(
         p,
@@ -466,11 +427,11 @@ float crossHair(vec2 st, float roll)
         PI * 1.8
     ));
     
-    shape = max(shape, vLineR(p, 0.0, -0.015,  -0.03 , r));
+    shape = max(shape, vLineR(p, 0.0,  0.015,   0.03 , r));
     shape = max(shape, hLineR(p, 0.0, -0.015,  -0.030, r));
     shape = max(shape, hLineR(p, 0.0,  0.015,   0.030, r));
-    shape = max(shape, vLineR(p, 0.0,  0.000,   0.015, r));
-    shape = max(shape, vLineR(p, 0.0,  0.0225,  0.03 , r));
+    shape = max(shape, vLineR(p, 0.0,  0.000,  -0.015, r));
+    shape = max(shape, vLineR(p, 0.0, -0.0225, -0.03 , r));
     
     return shape;
 }
@@ -486,17 +447,19 @@ float airSpeedLadder(vec2 st, float value)
 
     float baseY = -0.795;
 
-    const int TICKS = 30;
     float spacing = 0.05;
     
     // Normalize value to create smooth scrolling effect
     float normalizedValue = value / 100.0;
     float offset = mod(normalizedValue * spacing, spacing * 2.0);
 
-    for (int i = -TICKS/2; i <= TICKS/2; i++)
+    // Tight loop bounds: only iterate over visible ticks
+    int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
+    int iMax = min( 15, int(floor((offset + 0.3501) / spacing)));
+
+    for (int i = iMin; i <= iMax; i++)
     {
         float x = float(i) * spacing - offset;
-        if (abs(x) > 0.3501) continue;
 
         bool minor = (abs(i) % 2 == 1);
 
@@ -539,7 +502,7 @@ float airSpeedLadder(vec2 st, float value)
     line = max(line, as_altBracket(vec2(st.x, -st.y)));
 
     float textScale = 0.03;
-    vec2 uv = (st - vec2(-0.72, 0.36)) / textScale;
+    vec2 uv = (st - vec2(-0.72, -0.015)) / textScale;
     line = max(line, _decimal(fontTex, uv, value, 1));
 
     return line;
@@ -556,17 +519,19 @@ float altLadder(vec2 st, float value)
 
     float baseY = 0.795;
 
-    const int TICKS = 30;
     float spacing = 0.05;
     
     // Normalize value to create smooth scrolling effect
     float normalizedValue = value / 100.0;
     float offset = mod(normalizedValue * spacing, spacing * 2.0);
 
-    for (int i = -TICKS/2; i <= TICKS/2; i++)
+    // Tight loop bounds: only iterate over visible ticks
+    int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
+    int iMax = min( 15, int(floor((offset + 0.3501) / spacing)));
+
+    for (int i = iMin; i <= iMax; i++)
     {
         float x = float(i) * spacing - offset;
-        if (abs(x) > 0.3501) continue;
 
         bool minor = (abs(i) % 2 == 1);
 
@@ -578,7 +543,7 @@ float altLadder(vec2 st, float value)
                 st,
                 x,
                 baseY + h,
-                baseY + 0.005,
+                baseY - 0.005,
                 r
             ) * alpha;
 
@@ -608,8 +573,8 @@ float altLadder(vec2 st, float value)
     line = max(line, as_altBracket(vec2(-st.x, st.y)));
     line = max(line, as_altBracket(vec2(-st.x, -st.y)));
 
-    float textScale = 0.03;
-    vec2 uv = (st - vec2(0.72, 0.36)) / textScale;
+    float textScale = 0.04;
+    vec2 uv = (st - vec2(0.68, -0.02)) / textScale;
     line = max(line, _decimal(fontTex, uv, value, 1));
 
     return line;
@@ -652,6 +617,53 @@ float telemetryOverlay(vec2 st)
 }
 
 // ============================================
+// TARGET RETICLE
+// ============================================
+
+float targetReticle(vec2 st, vec2 tPos, float locked, float time)
+{
+    float r = 0.002;
+    float shape = 0.0;
+
+    vec2 p = st - tPos;
+
+    // Diamond size – pulses when locked
+    float sz = 0.04 + locked * 0.005 * sin(time * 5.0);
+
+    // Diamond outline (4 edges)
+    shape = max(shape, roundedLine(p, vec2(0.0, sz), vec2(sz, 0.0), r));
+    shape = max(shape, roundedLine(p, vec2(sz, 0.0), vec2(0.0, -sz), r));
+    shape = max(shape, roundedLine(p, vec2(0.0, -sz), vec2(-sz, 0.0), r));
+    shape = max(shape, roundedLine(p, vec2(-sz, 0.0), vec2(0.0, sz), r));
+
+    // Short crosshair through center
+    float cr = sz * 0.3;
+    shape = max(shape, hLineR(p, 0.0, -cr, cr, r));
+    shape = max(shape, vLineR(p, 0.0, -cr, cr, r));
+
+    // Corner brackets when locked
+    if (locked > 0.5) {
+        float bsz = sz * 1.6;
+        float blen = 0.015;
+
+        // Top-left
+        shape = max(shape, hLineR(p, -bsz, -bsz, -bsz + blen, r));
+        shape = max(shape, vLineR(p, -bsz, -bsz, -bsz + blen, r));
+        // Top-right
+        shape = max(shape, hLineR(p, -bsz, bsz - blen, bsz, r));
+        shape = max(shape, vLineR(p, bsz, -bsz, -bsz + blen, r));
+        // Bottom-left
+        shape = max(shape, hLineR(p, bsz, -bsz, -bsz + blen, r));
+        shape = max(shape, vLineR(p, -bsz, bsz - blen, bsz, r));
+        // Bottom-right
+        shape = max(shape, hLineR(p, bsz, bsz - blen, bsz, r));
+        shape = max(shape, vLineR(p, bsz, bsz - blen, bsz, r));
+    }
+
+    return shape;
+}
+
+// ============================================
 // MAIN
 // ============================================
 
@@ -666,22 +678,30 @@ void main()
     // HUD colors
     vec3 hudTint = hudColor.rgb;
 
-    vec2 fontUV = st * 2.0 + 0.5; // Scale and center the texture
-    if (fontUV.x >= 0.0 && fontUV.x <= 1.0 && fontUV.y >= 0.0 && fontUV.y <= 1.0) {
-        float fontSample = texture(fontTex, fontUV).r;
-        color += hudTint * fontSample;
-    }
-
     float hud = 0.0;
 
-    hud = max(hud, airSpeedLadder(st, speed));
-    hud = max(hud, altLadder(st, altitude));
-    hud = max(hud, compassTape(st, yaw)); 
-    hud = max(hud, crossHair(st, radians(roll)));
-    hud = max(hud, telemetryOverlay(st));
+    // Spatial early-outs: skip HUD elements outside their screen region
+    if (st.x > -0.85 && st.x < -0.60 && abs(st.y) < 0.45)
+        hud = max(hud, airSpeedLadder(st, speed));
 
-    float phase = iTime * 0.03 * sin(iTime * 0.5) * 0.005;
-    hud = max(hud, dottedCircle(st, 0.125, phase));
+    if (st.x > 0.60 && st.x < 0.85 && abs(st.y) < 0.45)
+        hud = max(hud, altLadder(st, altitude));
+
+    if (abs(st.x) < 0.42 && st.y < -0.35 && st.y > -0.52)
+        hud = max(hud, compassTape(st, yaw));
+
+    if (dot(st, st) < 0.0025)
+        hud = max(hud, crossHair(st, radians(roll)));
+
+    if (abs(st.x) < 0.75 && st.y > 0.38 && st.y < 0.55)
+        hud = max(hud, telemetryOverlay(st));
+
+    // Target reticle
+    float aspect = iResolution.x / iResolution.y;
+    vec2 tPos = vec2((targetX - 0.5) * aspect, targetY - 0.5);
+    float tRegion = 0.1;
+    if (abs(st.x - tPos.x) < tRegion && abs(st.y - tPos.y) < tRegion)
+        hud = max(hud, targetReticle(st, tPos, targetLocked, iTime));
 
     color += hudTint * hud;
 

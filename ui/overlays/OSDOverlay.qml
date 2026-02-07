@@ -22,6 +22,13 @@ Item {
     
     // Internal timer for shader animation
     property real elapsedTime: 0
+    
+    Timer {
+        running: root.animated
+        repeat: true
+        interval: 16  // ~60 FPS
+        onTriggered: root.elapsedTime += 0.016
+    }
 
     // Smooth transitions for telemetry values
     Behavior on yaw { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
@@ -60,12 +67,19 @@ Item {
             root.hudColor.a
         )
         
-        // Telemetry uniforms for future use
+        // Telemetry uniforms
         property real yaw: root.yaw
         property real pitch: root.pitch
         property real roll: root.roll
         property real altitude: root.altitude
         property real speed: root.speed
+
+        // Target tracking uniforms
+        property real targetLocked: root.targetLocked ? 1.0 : 0.0
+        property real targetX: root.targetX
+        property real targetY: root.targetY
+        // std140 padding float (matched by shader _pad0)
+        // Qt ShaderEffect maps by name, unnamed pad is implicit
         
         vertexShader: "qrc:/shaders/osd/osd.vert.qsb"
         fragmentShader: "qrc:/shaders/osd/osd.frag.qsb"

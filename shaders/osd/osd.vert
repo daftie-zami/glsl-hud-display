@@ -9,6 +9,14 @@ layout(std140, binding = 0) uniform buf {
     mat4 qt_Matrix;
     float qt_Opacity;
     float iTime;
+    float yaw;
+    float pitch;
+    float roll;
+    float speed;
+    float altitude;
+    float targetLocked;
+    float targetX;
+    float targetY;
     vec2 iResolution;
     vec2 padding;
     vec4 hudColor;
