@@ -31,11 +31,11 @@ Item {
     }
 
     // Smooth transitions for telemetry values
-    Behavior on yaw { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
-    Behavior on pitch { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
-    Behavior on roll { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
-    Behavior on altitude { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
-    Behavior on speed { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+    Behavior on yaw { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+    Behavior on pitch { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+    Behavior on roll { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+    Behavior on altitude { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+    Behavior on speed { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
     
     // Font image
     Image {

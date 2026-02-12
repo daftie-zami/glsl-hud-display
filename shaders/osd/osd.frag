@@ -449,9 +449,8 @@ float airSpeedLadder(vec2 st, float value)
 
     float spacing = 0.05;
     
-    // Normalize value to create smooth scrolling effect
-    float normalizedValue = value / 100.0;
-    float offset = mod(normalizedValue * spacing, spacing * 2.0);
+    // Scroll offset: major ticks = 10 units
+    float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
     // Tight loop bounds: only iterate over visible ticks
     int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
@@ -521,9 +520,8 @@ float altLadder(vec2 st, float value)
 
     float spacing = 0.05;
     
-    // Normalize value to create smooth scrolling effect
-    float normalizedValue = value / 100.0;
-    float offset = mod(normalizedValue * spacing, spacing * 2.0);
+    // Scroll offset: major ticks = 10 units
+    float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
     // Tight loop bounds: only iterate over visible ticks
     int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
