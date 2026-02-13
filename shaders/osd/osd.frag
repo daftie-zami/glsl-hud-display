@@ -329,9 +329,10 @@ float compassTape(vec2 st, float yawDegrees)
     float normalizedYaw = mod(yawDegrees, 360.0) / 360.0;
     float offset = mod(normalizedYaw * spacing * 72.0, spacing * 2.0);
 
-    // Tight loop bounds: only iterate over visible ticks
-    int iMin = max(-15, int(ceil((offset - 0.3001) / spacing)));
-    int iMax = min( 15, int(floor((offset + 0.3001) / spacing)));
+    float bracketX = 0.310;
+
+    int iMin = max(-8, int(ceil((offset - 0.3501) / spacing)));
+    int iMax = min( 8, int(floor((offset + 0.3501) / spacing)));
 
     for (int i = iMin; i <= iMax; i++)
     {
@@ -339,7 +340,7 @@ float compassTape(vec2 st, float yawDegrees)
 
         bool minor = (abs(i) % 2 == 1);
 
-        float h = minor ? 0.015 : 0.02;
+        float h = minor ? 0.018 : 0.023;
         float alpha = minor ? 0.45 : 1.0;
 
         float tick =
@@ -347,12 +348,16 @@ float compassTape(vec2 st, float yawDegrees)
                 st,
                 x,
                 baseY + h,
-                baseY + 0.005,
+                baseY + 0.008,
                 r
             ) * alpha;
 
         line = max(line, tick);
     }
+
+    float gap = 0.01;
+    float edgeX = bracketX - gap + max(st.y - baseY, 0.0);
+    line *= step(abs(st.x), edgeX);
     
     line = max(line, yawBracket(st));
     return line;
@@ -453,8 +458,8 @@ float airSpeedLadder(vec2 st, float value)
     float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
     // Tight loop bounds: only iterate over visible ticks
-    int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
-    int iMax = min( 15, int(floor((offset + 0.3501) / spacing)));
+    int iMin = max(-9, int(ceil((offset - 0.5001) / spacing)));
+    int iMax = min( 9, int(floor((offset + 0.5001) / spacing)));
 
     for (int i = iMin; i <= iMax; i++)
     {
@@ -476,6 +481,11 @@ float airSpeedLadder(vec2 st, float value)
 
         line = max(line, tick);
     }
+
+    float bracketY = 0.37;
+    float gap = 0.008;
+    float edgeY = bracketY - gap + max(st.x - baseY, 0.0) * 0.5;
+    line *= step(abs(st.y), edgeY);
 
     // Mask box area
     float boxMask = roundBoxMask(
@@ -524,8 +534,8 @@ float altLadder(vec2 st, float value)
     float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
     // Tight loop bounds: only iterate over visible ticks
-    int iMin = max(-15, int(ceil((offset - 0.3501) / spacing)));
-    int iMax = min( 15, int(floor((offset + 0.3501) / spacing)));
+    int iMin = max(-9, int(ceil((offset - 0.5001) / spacing)));
+    int iMax = min( 9, int(floor((offset + 0.5001) / spacing)));
 
     for (int i = iMin; i <= iMax; i++)
     {
@@ -547,6 +557,11 @@ float altLadder(vec2 st, float value)
 
         line = max(line, tick);
     }
+
+    float bracketY = 0.37;
+    float gap = 0.008;
+    float edgeY = bracketY - gap + max(baseY - st.x, 0.0) * 0.5;
+    line *= step(abs(st.y), edgeY);
 
     // Mask box area
     float boxMask = roundBoxMask(
