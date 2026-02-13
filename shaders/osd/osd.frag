@@ -46,7 +46,7 @@ float roundedLine(vec2 st, vec2 a, vec2 b, float r)
 float vLineR(vec2 st, float x, float y0, float y1, float r)
 {
     return roundedLine(st, vec2(x, y0), vec2(x, y1), r);
-} 
+}
 
 float hLineR(vec2 st, float y, float x0, float x1, float r)
 {
@@ -92,7 +92,7 @@ vec2 rotate2D(vec2 p, float a)
 #define CHAR_SPACING 0.44
 
 // Create a basic string
-#define makeStr(func_name) float func_name(vec2 u) { _print 
+#define makeStr(func_name) float func_name(vec2 u) { _print
 
 // Create a string with an int parameter
 #define makeStr1i(func_name) float func_name(vec2 u, int i) { _print
@@ -236,7 +236,7 @@ float _decimal(sampler2D FONT_TEXTURE, inout vec2 u, float n, int decimals) {
         n *= -1.;  // Make it positive
         (0 _SUB ); // Print a minus sign
     }
-    
+
     // Calculate the number of digits before the decimal point
     for (float x = n; x >= 10.; x /= 10.) N++;
 
@@ -254,15 +254,15 @@ float _decimal(sampler2D FONT_TEXTURE, inout vec2 u, float n, int decimals) {
     }
 
     (0 _DOT ); // Print a dot
-    
+
     // Print the digits after the decimal point
     for (int i = 0; i < decimals; i++) {
         float firstDecimal = floor((n - floor(n)) * 10.);
         n *= 10.;
-        
+
         (0 _dig(firstDecimal) );
     }
-    
+
     return d;
 }
 
@@ -291,7 +291,7 @@ float yawBracket(vec2 st)
         vec2(bx + 0.05, by + 0.05),
         r
     ));
-    
+
     line = max(line, roundedLine(
         st,
         vec2(-bx, by),
@@ -324,7 +324,7 @@ float compassTape(vec2 st, float yawDegrees)
     line = max(line, vLineR(st, 0.0, baseY - 0.025, baseY - 0.05, r));
 
     float spacing = 0.05;
-    
+
     // Normalize yaw for scrolling effect
     float normalizedYaw = mod(yawDegrees, 360.0) / 360.0;
     float offset = mod(normalizedYaw * spacing * 72.0, spacing * 2.0);
@@ -358,7 +358,7 @@ float compassTape(vec2 st, float yawDegrees)
     float gap = 0.01;
     float edgeX = bracketX - gap + max(st.y - baseY, 0.0);
     line *= step(abs(st.x), edgeX);
-    
+
     line = max(line, yawBracket(st));
     return line;
 }
@@ -401,7 +401,7 @@ float as_altBracket(vec2 st)
         vec2(-bx, -by + 0.04),
         r
     ));
-    
+
     line = max(line, roundedLine(
         st,
         vec2(-bx, -by),
@@ -431,13 +431,13 @@ float crossHair(vec2 st, float roll)
         PI * 0.2,
         PI * 1.8
     ));
-    
+
     shape = max(shape, vLineR(p, 0.0,  0.015,   0.03 , r));
     shape = max(shape, hLineR(p, 0.0, -0.015,  -0.030, r));
     shape = max(shape, hLineR(p, 0.0,  0.015,   0.030, r));
     shape = max(shape, vLineR(p, 0.0,  0.000,  -0.015, r));
     shape = max(shape, vLineR(p, 0.0, -0.0225, -0.03 , r));
-    
+
     return shape;
 }
 
@@ -453,7 +453,7 @@ float airSpeedLadder(vec2 st, float value)
     float baseY = -0.795;
 
     float spacing = 0.05;
-    
+
     // Scroll offset: major ticks = 10 units
     float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
@@ -529,7 +529,7 @@ float altLadder(vec2 st, float value)
     float baseY = 0.795;
 
     float spacing = 0.05;
-    
+
     // Scroll offset: major ticks = 10 units
     float offset = mod(value * spacing * 0.2, spacing * 2.0);
 
@@ -601,7 +601,7 @@ float telemetryOverlay(vec2 st)
 {
     float r = 0.003;
     float shape = 0.0;
-    
+
     float bx = 0.6;
     float by = 0.42;
 
@@ -625,7 +625,7 @@ float telemetryOverlay(vec2 st)
         vec2(-bx - 0.1, by + 0.08),
         r
     ));
-    
+
     return shape;
 }
 
@@ -687,27 +687,21 @@ void main()
     st.x *= iResolution.x / iResolution.y;
 
     vec3 color = vec3(0.0);
-    
+
     // HUD colors
     vec3 hudTint = hudColor.rgb;
 
     float hud = 0.0;
 
-    // Spatial early-outs: skip HUD elements outside their screen region
-    if (st.x > -0.85 && st.x < -0.60 && abs(st.y) < 0.45)
-        hud = max(hud, airSpeedLadder(st, speed));
+    hud = max(hud, airSpeedLadder(st, speed));
 
-    if (st.x > 0.60 && st.x < 0.85 && abs(st.y) < 0.45)
-        hud = max(hud, altLadder(st, altitude));
+    hud = max(hud, altLadder(st, altitude));
 
-    if (abs(st.x) < 0.42 && st.y < -0.35 && st.y > -0.52)
-        hud = max(hud, compassTape(st, yaw));
+    hud = max(hud, compassTape(st, yaw));
 
-    if (dot(st, st) < 0.0025)
-        hud = max(hud, crossHair(st, radians(roll)));
+    hud = max(hud, crossHair(st, radians(roll)));
 
-    if (abs(st.x) < 0.75 && st.y > 0.38 && st.y < 0.55)
-        hud = max(hud, telemetryOverlay(st));
+    hud = max(hud, telemetryOverlay(st));
 
     // Target reticle
     float aspect = iResolution.x / iResolution.y;
