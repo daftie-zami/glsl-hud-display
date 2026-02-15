@@ -266,6 +266,30 @@ float _decimal(sampler2D FONT_TEXTURE, inout vec2 u, float n, int decimals) {
     return d;
 }
 
+// Integer printing (no dot, no decimals)
+float _integer(sampler2D FONT_TEXTURE, inout vec2 u, float n) {
+    float d = 0., N = 1.;
+
+    if (n < 0.) {
+        n *= -1.;
+        (0 _SUB );
+    }
+
+    for (float x = n; x >= 10.; x /= 10.) N++;
+
+    float magnitude = 1.0;
+    for (float j = 1.0; j < N; j++) magnitude *= 10.0;
+
+    for (float i = 0.; i < N; i++) {
+        float leftDigit = floor(n / magnitude);
+        n -= leftDigit * magnitude;
+        magnitude *= 0.1;
+        (0 _dig(leftDigit) );
+    }
+
+    return d;
+}
+
 // ============================================
 // YAW BRACKET
 // ============================================
@@ -353,6 +377,21 @@ float compassTape(vec2 st, float yawDegrees)
             ) * alpha;
 
         line = max(line, tick);
+
+        // Draw value labels below major ticks (centered)
+        if (!minor) {
+            float tickDeg = mod(floor(yawDegrees / 10.0) * 10.0 + float(i) * 5.0, 360.0);
+            if (tickDeg < 0.0) tickDeg += 360.0;
+            float ts = 0.022;
+            // Count digits to center-align
+            float nDigits = 1.0;
+            for (float v = tickDeg; v >= 10.0; v /= 10.0) nDigits += 1.0;
+            // _integer prints from CHAR_SPACING offset; true visible span is
+            // [CHAR_SPACING, nDigits*CHAR_SPACING+1] in tuv-space
+            float halfSpan = ((nDigits + 1.0) * CHAR_SPACING + 1.0) * ts * 0.5;
+            vec2 tuv = (st - vec2(x - halfSpan, baseY + 0.05 - ts)) / ts;
+            line = max(line, _integer(fontTex, tuv, tickDeg));
+        }
     }
 
     float gap = 0.01;
@@ -480,6 +519,15 @@ float airSpeedLadder(vec2 st, float value)
             ) * alpha;
 
         line = max(line, tick);
+
+        // Draw value labels next to major ticks
+        if (!minor) {
+            float tickValue = floor(value / 10.0) * 10.0 + float(i) * 5.0;
+            float ts = 0.022;
+            float leftEdge = baseY + 0.015;
+            vec2 tuv = (st - vec2(leftEdge, x - ts * 0.5)) / ts;
+            line = max(line, _integer(fontTex, tuv, tickValue));
+        }
     }
 
     float bracketY = 0.37;
@@ -490,7 +538,7 @@ float airSpeedLadder(vec2 st, float value)
     // Mask box area
     float boxMask = roundBoxMask(
         vec2(st.x + 0.75, st.y),
-        vec2(0.1, 0.05),
+        vec2(0.08, 0.04),
         0.01
     );
 
@@ -501,7 +549,7 @@ float airSpeedLadder(vec2 st, float value)
     line = max(line,
         roundBoxStroke(
             vec2(st.x + 0.75, st.y),
-            vec2(0.1, 0.05),
+            vec2(0.08, 0.04),
             0.01,
             0.002
         )
@@ -556,6 +604,21 @@ float altLadder(vec2 st, float value)
             ) * alpha;
 
         line = max(line, tick);
+
+        // Draw value labels next to major ticks (right-aligned)
+        if (!minor) {
+            float tickValue = floor(value / 10.0) * 10.0 + float(i) * 5.0;
+            float ts = 0.022;
+            // Count digits to right-align
+            float nDigits = 1.0;
+            float absVal = abs(tickValue);
+            for (float v = absVal; v >= 10.0; v /= 10.0) nDigits += 1.0;
+            if (tickValue < 0.0) nDigits += 1.0; // minus sign
+            float textWidth = nDigits * CHAR_SPACING * ts;
+            float rightEdge = baseY - 0.045; // right edge of text area (near tick)
+            vec2 tuv = (st - vec2(rightEdge - textWidth, x - ts * 0.5)) / ts;
+            line = max(line, _integer(fontTex, tuv, tickValue));
+        }
     }
 
     float bracketY = 0.37;
@@ -566,7 +629,7 @@ float altLadder(vec2 st, float value)
     // Mask box area
     float boxMask = roundBoxMask(
         vec2(st.x - 0.75, st.y),
-        vec2(0.1, 0.05),
+        vec2(0.08, 0.04),
         0.01
     );
 
@@ -577,7 +640,7 @@ float altLadder(vec2 st, float value)
     line = max(line,
         roundBoxStroke(
             vec2(st.x - 0.75, st.y),
-            vec2(0.1, 0.05),
+            vec2(0.08, 0.04),
             0.01,
             0.002
         )
